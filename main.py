@@ -1,14 +1,18 @@
-from typing import Optional
-
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
+from PIL import Image
+from io import BytesIO
+from collections import Counter
 
 app = FastAPI()
 
+@app.post("/extract-hex")
+async def extract_hex(file: UploadFile = File(...)):
+    contents = await file.read()
+    image = Image.open(BytesIO(contents)).convert('RGB')
+    pixels = list(image.getdata())
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+    # Get the most common color
+    most_common_color = Counter(pixels).most_common(1)[0][0]
+    hex_color = '#{:02x}{:02x}{:02x}'.format(*most_common_color).upper()
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Optional[str] = None):
-    return {"item_id": item_id, "q": q}
+    return {"hex": hex_color}
